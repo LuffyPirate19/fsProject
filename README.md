@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # E-Commerce Order Pipeline
 
 An event-driven order processing system that handles the complete order lifecycle: order creation → inventory reservation → payment authorization → shipping processing.
@@ -21,23 +22,38 @@ This is a **microservices-based order management system** that:
 - **Database**: MongoDB storing orders, events, and idempotency keys
 - **Realtime**: Socket.io WebSocket for live order updates
 - **Event-Driven**: Services communicate via HTTP calls with correlation IDs
+=======
+Features
+⚙️ Core Infrastructure
 
-## Quick Start
+Structured JSON Logging with correlation IDs and levels
 
+Schema Versioning and runtime validation
+>>>>>>> 97ff8a8ddd5dba8066be6a4efbb08f4c62dcc71f
+
+PII Minimization via SHA-256 hashing
+
+<<<<<<< HEAD
 **Quick Installation:**
+=======
+Exponential Backoff Retries with jitter
 
-```sh
-# Install dependencies (fixes peer dependency conflicts automatically)
-npm install
+Metrics Collection for latency and success rates
+>>>>>>> 97ff8a8ddd5dba8066be6a4efbb08f4c62dcc71f
 
-# Start development server
-npm run dev
-```
+Health Check Endpoints (/health, /ready, /live, /metrics)
 
+JWT Authentication Utilities
+
+<<<<<<< HEAD
 **Note**: Docker is **optional**. MongoDB can run locally or use MongoDB Atlas (cloud).
+=======
+Docker Compose Setup for local Supabase stack
+>>>>>>> 97ff8a8ddd5dba8066be6a4efbb08f4c62dcc71f
 
-## How can I edit this code?
+Makefile & Scripts for development automation
 
+<<<<<<< HEAD
 **Use your preferred IDE**
 
 The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
@@ -90,3 +106,10 @@ npm run dev
 ## License
 
 This project is private and proprietary.
+=======
+Client-Side Validation using Zod
+
+WebSocket Client for real-time updates
+
+Unit Tests for core utilities
+>>>>>>> 97ff8a8ddd5dba8066be6a4efbb08f4c62dcc71f
