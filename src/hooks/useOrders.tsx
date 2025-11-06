@@ -1,5 +1,6 @@
 import { useEffect, useState, useCallback } from 'react';
-import { supabase } from '@/integrations/supabase/client';
+import { apiClient } from '@/lib/api-client';
+import { orderWebSocket } from '@/lib/websocket-client';
 import { Order, OrderEvent } from '@/types/order';
 
 export const useOrders = () => {
@@ -14,41 +15,37 @@ export const useOrders = () => {
     
     try {
       setError(null);
-      const { data: ordersData, error: ordersError } = await supabase
-        .from('orders')
-        .select('*, order_items(*), order_events(*)')
-        .order('created_at', { ascending: false });
+      const { orders: ordersData } = await apiClient.getOrders();
 
-      if (ordersError) throw ordersError;
-
+      // Transform to match Order type
       const transformedOrders: Order[] = ordersData.map((order: any) => ({
         id: order.id,
-        customerId: order.customer_id,
-        customerName: order.customer_name,
+        customerId: order.customerId,
+        customerName: order.customerName,
         status: order.status as Order['status'],
-        totalAmount: parseFloat(order.total_amount),
-        currentStage: order.current_stage as Order['currentStage'],
-        createdAt: new Date(order.created_at),
-        updatedAt: new Date(order.updated_at),
-        items: (order.order_items || []).map((item: any) => ({
-          productId: item.product_id,
-          productName: item.product_name,
+        totalAmount: order.totalAmount,
+        currentStage: order.currentStage as Order['currentStage'],
+        createdAt: order.createdAt instanceof Date ? order.createdAt : new Date(order.createdAt),
+        updatedAt: order.updatedAt instanceof Date ? order.updatedAt : new Date(order.updatedAt),
+        items: (order.items || []).map((item: any) => ({
+          productId: item.productId,
+          productName: item.productName,
           quantity: item.quantity,
-          price: parseFloat(item.price),
+          price: item.price,
         })),
-        events: (order.order_events || []).map((event: any) => ({
+        events: (order.events || []).map((event: any) => ({
           id: event.id,
-          eventType: event.event_type as OrderEvent['eventType'],
-          timestamp: new Date(event.created_at),
-          orderId: event.order_id,
-          correlationId: event.correlation_id,
-          causationId: event.causation_id,
+          eventType: event.eventType as OrderEvent['eventType'],
+          timestamp: event.timestamp instanceof Date ? event.timestamp : new Date(event.timestamp),
+          orderId: event.orderId,
+          correlationId: event.correlationId,
+          causationId: event.causationId,
           version: event.version,
           payload: event.payload || {},
           metadata: {
-            service: event.service,
-            retryCount: event.retry_count,
-            error: event.error_message,
+            service: event.metadata.service,
+            retryCount: event.metadata.retryCount,
+            error: event.metadata.error,
           },
         })).sort((a: OrderEvent, b: OrderEvent) => 
           a.timestamp.getTime() - b.timestamp.getTime()
@@ -70,37 +67,36 @@ export const useOrders = () => {
 
     // Subscribe to realtime updates with debouncing
     let timeoutId: ReturnType<typeof setTimeout>;
-    const ordersChannel = supabase
-      .channel('orders-changes')
-      .on('postgres_changes', 
-        { event: '*', schema: 'public', table: 'orders' },
-        () => {
-          // Debounce rapid updates
-          clearTimeout(timeoutId);
-          timeoutId = setTimeout(() => {
-            fetchOrders(false);
-          }, 300);
-        }
-      )
-      .on('postgres_changes',
-        { event: '*', schema: 'public', table: 'order_events' },
-        () => {
-          // Debounce rapid updates
-          clearTimeout(timeoutId);
-          timeoutId = setTimeout(() => {
-            fetchOrders(false);
-          }, 300);
-        }
-      )
-      .subscribe((status) => {
-        if (status === 'SUBSCRIBED') {
-          console.log('Subscribed to order updates');
-        }
-      });
+    
+    const unsubscribeOrder = orderWebSocket.subscribe('order', (data) => {
+      console.log('WebSocket order event received:', data);
+      // Debounce rapid updates
+      clearTimeout(timeoutId);
+      timeoutId = setTimeout(() => {
+        fetchOrders(false);
+      }, 300);
+    });
+
+    const unsubscribeEvent = orderWebSocket.subscribe('event', (data) => {
+      console.log('WebSocket event received:', data);
+      // Debounce rapid updates
+      clearTimeout(timeoutId);
+      timeoutId = setTimeout(() => {
+        fetchOrders(false);
+      }, 300);
+    });
+
+    // Also set up polling as fallback (every 1.5 seconds)
+    // This ensures we always see updates even if WebSocket fails
+    const pollInterval = setInterval(() => {
+      fetchOrders(false);
+    }, 1500);
 
     return () => {
       clearTimeout(timeoutId);
-      supabase.removeChannel(ordersChannel);
+      clearInterval(pollInterval);
+      unsubscribeOrder();
+      unsubscribeEvent();
     };
   }, [fetchOrders]);
 

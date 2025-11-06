@@ -7,7 +7,7 @@ import { EventTimeline } from "@/components/EventTimeline";
 import { StageProgress } from "@/components/StageProgress";
 import { ArrowLeft, RefreshCw, AlertTriangle, Package, Loader2, AlertCircle } from "lucide-react";
 import { format, formatDistanceToNow } from "date-fns";
-import { supabase } from "@/integrations/supabase/client";
+import { apiClient } from "@/lib/api-client";
 import { toast } from "sonner";
 import { useState, useEffect } from "react";
 
@@ -50,16 +50,12 @@ export default function OrderDetail() {
       await refetch(false);
       
       // Get fresh order status
-      const { data: freshOrderData } = await supabase
-        .from('orders')
-        .select('status')
-        .eq('id', orderId)
-        .single();
+      const { order: freshOrder } = await apiClient.getOrder(orderId);
       
       // Stop polling if order is completed or failed again, or max polls reached
       if (
-        freshOrderData?.status === 'completed' || 
-        freshOrderData?.status === 'failed' ||
+        freshOrder?.status === 'completed' || 
+        freshOrder?.status === 'failed' ||
         pollCount >= maxPolls
       ) {
         clearInterval(pollInterval);
@@ -76,12 +72,7 @@ export default function OrderDetail() {
     
     setCheckingDiagnostic(true);
     try {
-      const { data, error } = await supabase.functions.invoke('diagnose-order', {
-        body: { orderId }
-      });
-
-      if (error) throw error;
-
+      const data = await apiClient.diagnoseOrder(orderId);
       setDiagnostic(data);
       
       if (data.isStuck) {
@@ -110,11 +101,7 @@ export default function OrderDetail() {
     setIsRefreshing(true);
     
     try {
-      const { error } = await supabase.functions.invoke('retry-failed-order', {
-        body: { orderId: order.id }
-      });
-
-      if (error) throw error;
+      await apiClient.retryOrder(order.id);
 
       toast.success('Order retry initiated', {
         description: 'The order is being reprocessed through the pipeline. Page will update automatically.'
@@ -249,7 +236,11 @@ export default function OrderDetail() {
               )}
               <Button 
                 variant="outline"
-                onClick={() => refetch(true)}
+                onClick={async () => {
+                  setIsRefreshing(true);
+                  await refetch(true);
+                  setIsRefreshing(false);
+                }}
                 disabled={isRefreshing}
               >
                 <RefreshCw className={`w-4 h-4 mr-2 ${isRefreshing ? 'animate-spin' : ''}`} />

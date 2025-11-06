@@ -3,7 +3,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { supabase } from "@/integrations/supabase/client";
+import { apiClient } from "@/lib/api-client";
+import { useOrders } from "@/hooks/useOrders";
 import { toast } from "sonner";
 import { Loader2, Zap } from "lucide-react";
 
@@ -13,6 +14,7 @@ interface LoadGeneratorDialogProps {
 }
 
 export const LoadGeneratorDialog = ({ open, onOpenChange }: LoadGeneratorDialogProps) => {
+  const { refetch } = useOrders();
   const [count, setCount] = useState(10);
   const [delayMs, setDelayMs] = useState(500);
   const [loading, setLoading] = useState(false);
@@ -22,15 +24,14 @@ export const LoadGeneratorDialog = ({ open, onOpenChange }: LoadGeneratorDialogP
     
     setLoading(true);
     try {
-      const { data, error } = await supabase.functions.invoke('load-generator', {
-        body: { count, delayMs }
-      });
-
-      if (error) throw error;
+      const data = await apiClient.generateLoad(count, delayMs);
 
       toast.success("Load test completed", {
         description: data.message || `Generated ${count} synthetic orders`
       });
+      
+      // Refetch orders to show the new orders
+      await refetch(true);
       
       onOpenChange(false);
     } catch (error) {

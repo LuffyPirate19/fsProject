@@ -3,7 +3,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { supabase } from "@/integrations/supabase/client";
+import { apiClient } from "@/lib/api-client";
+import { useOrders } from "@/hooks/useOrders";
 import { toast } from "sonner";
 import { Loader2, Plus, Trash2 } from "lucide-react";
 
@@ -20,6 +21,7 @@ interface OrderItem {
 }
 
 export const CreateOrderDialog = ({ open, onOpenChange }: CreateOrderDialogProps) => {
+  const { refetch } = useOrders();
   const [customerName, setCustomerName] = useState("");
   const [items, setItems] = useState<OrderItem[]>([
     { productId: "", productName: "", quantity: 1, price: 0 }
@@ -55,23 +57,22 @@ export const CreateOrderDialog = ({ open, onOpenChange }: CreateOrderDialogProps
 
     setLoading(true);
     try {
-      const { error } = await supabase.functions.invoke('create-order', {
-        body: {
-          customerName: customerName.trim(),
-          items: items.map(item => ({
-            productId: item.productId || `prod_${Date.now()}`,
-            productName: item.productName.trim(),
-            quantity: item.quantity,
-            price: item.price
-          }))
-        }
+      await apiClient.createOrder({
+        customerName: customerName.trim(),
+        items: items.map(item => ({
+          productId: item.productId || `prod_${Date.now()}`,
+          productName: item.productName.trim(),
+          quantity: item.quantity,
+          price: item.price
+        }))
       });
-
-      if (error) throw error;
 
       toast.success("Order created successfully", {
         description: "The order is now being processed through the pipeline."
       });
+      
+      // Refetch orders to show the new order
+      await refetch(true);
       
       onOpenChange(false);
       setCustomerName("");

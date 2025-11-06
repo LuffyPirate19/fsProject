@@ -6,13 +6,13 @@ help: ## Show this help message
 	@echo 'Available targets:'
 	@awk 'BEGIN {FS = ":.*?## "} /^[a-zA-Z_-]+:.*?## / {printf "  %-15s %s\n", $$1, $$2}' $(MAKEFILE_LIST)
 
-up: ## Start all services with Docker Compose (OPTIONAL - requires Docker)
-	@echo "Note: Docker is optional. For local development, use 'supabase start' instead."
-	@command -v docker > /dev/null 2>&1 || (echo "Docker not found. Install Docker Desktop or use 'supabase start'" && exit 1)
-	docker-compose up -d
-	@echo "Waiting for services to be ready..."
+up: ## Start MongoDB with Docker Compose (OPTIONAL - requires Docker)
+	@echo "Note: Docker is optional. You can use MongoDB Atlas (cloud) instead."
+	@command -v docker > /dev/null 2>&1 || (echo "Docker not found. Install Docker Desktop or use MongoDB Atlas" && exit 1)
+	docker-compose up -d mongodb
+	@echo "Waiting for MongoDB to be ready..."
 	@sleep 5
-	@echo "Services started!"
+	@echo "MongoDB started! Run 'cd server && npm run setup-db' to initialize the database."
 
 down: ## Stop all services
 	docker-compose down

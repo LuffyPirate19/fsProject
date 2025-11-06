@@ -1,12 +1,28 @@
-# Welcome to your Lovable project
+# E-Commerce Order Pipeline
 
-## Project info
+An event-driven order processing system that handles the complete order lifecycle: order creation → inventory reservation → payment authorization → shipping processing.
 
-**URL**: https://lovable.dev/projects/11015630-6f76-4208-ba86-8f5e2e7840c1
+## What This Project Does
+
+This is a **microservices-based order management system** that:
+
+- **Creates orders** with customer and product information
+- **Processes orders** through multiple stages (inventory → payment → shipping)
+- **Tracks order status** in real-time with a visual timeline
+- **Handles failures** with automatic retries and dead letter queues
+- **Provides observability** with structured logging, metrics, and health checks
+- **Supports manual retries** for failed orders
+- **Implements event sourcing** to maintain a complete history of all order events
+
+## Architecture
+
+- **Frontend**: React + TypeScript dashboard showing order status and event timeline
+- **Backend**: Node.js/Express API server handling order processing services
+- **Database**: MongoDB storing orders, events, and idempotency keys
+- **Realtime**: Socket.io WebSocket for live order updates
+- **Event-Driven**: Services communicate via HTTP calls with correlation IDs
 
 ## Quick Start
-
-See **[SETUP.md](./SETUP.md)** for detailed setup instructions.
 
 **Quick Installation:**
 
@@ -18,79 +34,59 @@ npm install
 npm run dev
 ```
 
-**Note**: Docker is **optional**. For local Supabase development, use Supabase CLI:
-```sh
-npm install -g supabase
-supabase start
-```
+**Note**: Docker is **optional**. MongoDB can run locally or use MongoDB Atlas (cloud).
 
 ## How can I edit this code?
 
-There are several ways of editing your application.
-
-**Use Lovable**
-
-Simply visit the [Lovable Project](https://lovable.dev/projects/11015630-6f76-4208-ba86-8f5e2e7840c1) and start prompting.
-
-Changes made via Lovable will be committed automatically to this repo.
-
 **Use your preferred IDE**
-
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
 
 The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
 
 Follow these steps:
 
 ```sh
-# Step 1: Clone the repository using the project's Git URL.
+# Step 1: Clone the repository
 git clone <YOUR_GIT_URL>
 
-# Step 2: Navigate to the project directory.
+# Step 2: Navigate to the project directory
 cd <YOUR_PROJECT_NAME>
 
-# Step 3: Install the necessary dependencies.
+# Step 3: Install the necessary dependencies
 npm install
 
-# Step 4: Set up environment variables (see SETUP.md)
-# Create .env.local with your Supabase credentials
+# Step 4: Set up environment variables
+# Create .env.local with your API URL (see README.md for details)
 
-# Step 5: Start the development server with auto-reloading and an instant preview.
+# Step 5: Start the development server
 npm run dev
 ```
 
-**Edit a file directly in GitHub**
+## Technologies Used
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
-
-**Use GitHub Codespaces**
-
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
-
-## What technologies are used for this project?
-
-This project is built with:
-
+**Frontend:**
+- React + TypeScript
 - Vite
-- TypeScript
-- React
-- shadcn-ui
+- shadcn/ui components
 - Tailwind CSS
+- Socket.io Client (WebSocket)
 
-## How can I deploy this project?
+**Backend:**
+- Node.js/Express API server
+- MongoDB (Atlas or local)
+- Event Sourcing pattern
+- Saga pattern for compensation
 
-Simply open [Lovable](https://lovable.dev/projects/11015630-6f76-4208-ba86-8f5e2e7840c1) and click on Share -> Publish.
+**Features:**
+- Idempotency handling
+- Dead Letter Queue (DLQ)
+- Automatic retries with exponential backoff
+- Structured logging
+- Health checks and metrics
 
-## Can I connect a custom domain to my Lovable project?
+## Author
 
-Yes, you can!
+**ANSH GUPTA**
 
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
+## License
 
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/features/custom-domain#custom-domain)
+This project is private and proprietary.

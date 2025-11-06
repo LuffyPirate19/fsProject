@@ -1,34 +1,49 @@
 version: '3.8'
 
-# NOTE: This Docker Compose setup is OPTIONAL
-# For local development, Supabase CLI is recommended:
-#   npm install -g supabase
-#   supabase start
-#
-# Docker is only needed if you want to run Supabase in containers
+# MongoDB-based Order Pipeline
+# This replaces the previous PostgreSQL/Supabase setup
 
 services:
-  # Supabase Local Development
-  supabase-db:
-    image: supabase/postgres:15.1.0.147
-    container_name: supabase-db
+  # MongoDB Database
+  mongodb:
+    image: mongo:7
+    container_name: order-pipeline-mongodb
     ports:
-      - "54322:5432"
+      - "27017:27017"
     environment:
-      POSTGRES_PASSWORD: postgres
-      POSTGRES_DB: postgres
-      POSTGRES_USER: postgres
+      MONGO_INITDB_ROOT_USERNAME: admin
+      MONGO_INITDB_ROOT_PASSWORD: password
     volumes:
-      - supabase-db-data:/var/lib/postgresql/data
-      - ./supabase/migrations:/docker-entrypoint-initdb.d/migrations
+      - mongodb-data:/data/db
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
       interval: 5s
       timeout: 5s
       retries: 5
 
+  # API Server (optional - can run separately)
+  # Uncomment to run API server in Docker
+  # api:
+  #   build:
+  #     context: ./server
+  #     dockerfile: Dockerfile
+  #   container_name: order-pipeline-api
+  #   ports:
+  #     - "3000:3000"
+  #   environment:
+  #     MONGODB_URI: mongodb://admin:password@mongodb:27017/order-pipeline?authSource=admin
+  #     PORT: 3000
+  #     API_URL: http://localhost:3000
+  #     FRONTEND_URL: http://localhost:5173
+  #   depends_on:
+  #     mongodb:
+  #       condition: service_healthy
+  #   volumes:
+  #     - ./server:/app
+  #     - /app/node_modules
+
 volumes:
-  supabase-db-data:
+  mongodb-data:
 
 networks:
   default:

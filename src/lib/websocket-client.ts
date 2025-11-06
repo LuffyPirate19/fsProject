@@ -1,42 +1,63 @@
-// WebSocket client for real-time order updates
-import { supabase } from '@/integrations/supabase/client';
+// WebSocket client using Socket.io for real-time order updates
+import { io, Socket } from 'socket.io-client';
+
+// Convert HTTP URL to WebSocket URL
+const getWebSocketUrl = () => {
+  const apiUrl = import.meta.env.VITE_WS_URL || import.meta.env.VITE_API_URL || 'http://localhost:3000';
+  // Convert http:// to ws:// and https:// to wss://
+  return apiUrl.replace(/^http/, 'ws');
+};
+
+const WS_URL = getWebSocketUrl();
 
 export class OrderWebSocketClient {
-  private channel: any;
+  private socket: Socket | null = null;
   private callbacks: Map<string, Set<(data: any) => void>> = new Map();
+  private connected: boolean = false;
 
   constructor() {
     this.connect();
   }
 
   private connect() {
-    this.channel = supabase
-      .channel('order-updates')
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'orders',
-        },
-        (payload: any) => {
-          this.notify('order', payload);
-        }
-      )
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'order_events',
-        },
-        (payload: any) => {
-          this.notify('event', payload);
-        }
-      )
-      .subscribe();
+    if (this.socket?.connected) {
+      return;
+    }
 
-    return this.channel;
+    this.socket = io(WS_URL, {
+      transports: ['websocket', 'polling'],
+      reconnection: true,
+      reconnectionDelay: 1000,
+      reconnectionAttempts: 5,
+    });
+
+    this.socket.on('connect', () => {
+      this.connected = true;
+      console.log('WebSocket connected');
+    });
+
+    this.socket.on('disconnect', () => {
+      this.connected = false;
+      console.log('WebSocket disconnected');
+    });
+
+    // Listen for order events
+    this.socket.on('order:created', (data: any) => {
+      this.notify('order', { eventType: 'INSERT', new: data });
+    });
+
+    this.socket.on('order:updated', (data: any) => {
+      this.notify('order', { eventType: 'UPDATE', new: data });
+    });
+
+    this.socket.on('order:completed', (data: any) => {
+      this.notify('order', { eventType: 'UPDATE', new: data });
+    });
+
+    // Listen for event updates
+    this.socket.on('event:created', (data: any) => {
+      this.notify('event', { eventType: 'INSERT', new: data });
+    });
   }
 
   subscribe(event: 'order' | 'event', callback: (data: any) => void) {
@@ -59,15 +80,18 @@ export class OrderWebSocketClient {
   }
 
   disconnect() {
-    if (this.channel) {
-      supabase.removeChannel(this.channel);
-      this.channel = null;
+    if (this.socket) {
+      this.socket.disconnect();
+      this.socket = null;
     }
     this.callbacks.clear();
+    this.connected = false;
+  }
+
+  isConnected(): boolean {
+    return this.connected;
   }
 }
 
 // Singleton instance
 export const orderWebSocket = new OrderWebSocketClient();
-
-
