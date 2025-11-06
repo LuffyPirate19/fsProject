@@ -1,0 +1,36 @@
+version: '3.8'
+
+# NOTE: This Docker Compose setup is OPTIONAL
+# For local development, Supabase CLI is recommended:
+#   npm install -g supabase
+#   supabase start
+#
+# Docker is only needed if you want to run Supabase in containers
+
+services:
+  # Supabase Local Development
+  supabase-db:
+    image: supabase/postgres:15.1.0.147
+    container_name: supabase-db
+    ports:
+      - "54322:5432"
+    environment:
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: postgres
+      POSTGRES_USER: postgres
+    volumes:
+      - supabase-db-data:/var/lib/postgresql/data
+      - ./supabase/migrations:/docker-entrypoint-initdb.d/migrations
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  supabase-db-data:
+
+networks:
+  default:
+    name: order-pipeline-network
+
